@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NabiulWord - Modern Smart Notepad</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- External Scripts for PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --text: #f1f5f9;
+            --accent: #22d3ee;
+            --page-bg: #ffffff;
+            --page-text: #1e293b;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Modern Themes */
+        .theme-ocean {
+            --primary: #0ea5e9; --secondary: #06b6d4; --bg: #081229;
+            --accent: #38bdf8; --surface: rgba(15, 23, 42, 0.7);
+        }
+        .theme-forest {
+            --primary: #10b981; --secondary: #34d399; --bg: #061c13;
+            --accent: #6ee7b7; --surface: rgba(6, 78, 59, 0.7);
+        }
+        .theme-sunset {
+            --primary: #f97316; --secondary: #f43f5e; --bg: #2a0a18;
+            --accent: #fb923c; --surface: rgba(67, 20, 7, 0.7);
+        }
+        .theme-rose {
+            --primary: #ec4899; --secondary: #db2777; --bg: #250914;
+            --accent: #f472b6; --surface: rgba(80, 7, 36, 0.7);
+        }
+        .theme-light {
+            --primary: #6366f1; --secondary: #8b5cf6; --bg: #f8fafc;
+            --text: #0f172a; --accent: #3b82f6; --surface: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: all 0.5s ease;
+            filter: brightness(var(--brightness, 1));
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Mesh Gradient Background */
+        .bg-blobs {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+            background: var(--bg);
+            transition: background-color 0.5s ease;
+        }
+        
+        .blob {
+            position: absolute;
+            filter: blur(100px);
+            opacity: 0.6;
+            animation: float 20s infinite alternate ease-in-out;
+            border-radius: 50%;
+        }
+        .theme-light .blob { opacity: 0.3; }
+
+        .blob-1 { background: var(--primary); width: 500px; height: 500px; top: -10%; left: -10%; }
+        .blob-2 { background: var(--secondary); width: 400px; height: 400px; bottom: -10%; right: -10%; animation-delay: -5s; }
+        .blob-3 { background: var(--accent); width: 600px; height: 600px; top: 40%; left: 30%; animation-delay: -10s; opacity: 0.4; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 100px) scale(1.2); }
+            100% { transform: translate(-50px, -50px) scale(0.9); }
+        }
+
+        /* Premium Glassmorphism */
+        .glass {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* A4 Page Styling - Modern Minimalist */
+        .pages-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding-bottom: 80px;
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: var(--page-bg);
+            color: var(--page-text);
+            padding: 15mm;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.3),
+                0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .editor-area {
+            font-family: 'Poppins', 'Noto Sans Bengali', sans-serif;
+            font-size: 16px;
+            line-height: 1.8;
+            min-height: calc(297mm - 30mm);
+            outline: none;
+            color: var(--page-text);
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            text-align: justify;
+            position: relative;
+        }
+
+        .editor-area p { margin-bottom: 0.5em; }
+        .editor-area br { line-height: 1.4; }
+
+        .editor-area:empty::before {
+            content: 'Write something amazing here...';
+            color: #cbd5e1;
+            font-style: italic;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Modern Floating Toolbar */
+        .toolbar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 90;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: 100px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: grab;
+        }
+
+        .toolbar:active { cursor: grabbing; }
+        
+        .toolbar.toolbar-bottom {
+            top: auto !important;
+            bottom: 80px;
+        }
+
+        .toolbar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid transparent;
+            color: var(--text);
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px) scale(1.05);
+        }
+        .toolbar-btn:active { transform: translateY(0) scale(0.95); }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--glass-border);
+            margin: 0 4px;
+        }
+
+        .font-size-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: white;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+        }
+        .font-size-select option { background: #1e293b; color: white; }
+
+        /* Color Picker Dropdown */
+        .color-picker-container, .font-picker-container { position: relative; }
+        
+        .color-dropdown, .font-dropdown {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            visibility: hidden;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 12px;
+            z-index: 200;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .color-dropdown.show, .font-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .color-dropdown {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .color-btn:hover { transform: scale(1.2); border-color: white; }
+
+        /* Modern Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 24px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 50;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        /* Page Number & Watermark */
+        .page-number {
+            position: absolute;
+            bottom: 10mm;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #64748b;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+        }
+
+        .page-break-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, var(--primary) 0, var(--primary) 10px, transparent 10px, transparent 20px);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .page-break-indicator {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Hamburger & Export Button */
+        .action-btn-container {
+            position: fixed;
+            top: 20px;
+            z-index: 100;
+        }
+        .action-left { left: 20px; }
+        .action-right { right: 20px; }
+
+        .modern-btn {
+            height: 44px;
+            padding: 0 20px;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5);
+        }
+
+        .hamburger-btn {
+            width: 44px;
+            padding: 0;
+            justify-content: center;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+        }
+        .hamburger-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.05); }
+
+        /* Responsive */
+        @media screen and (max-width: 900px) {
+            .a4-page { width: 95%; padding: 10mm; }
+            .toolbar { width: 90%; max-width: 400px; top: auto; bottom: 80px; }
+        }
+        @media screen and (max-width: 600px) {
+            .a4-page { width: 100%; border-radius: 0; padding: 5mm; }
+            .toolbar-btn { width: 32px; height: 32px; }
+            .action-left { top: 10px; left: 10px; }
+            .action-right { top: 10px; right: 10px; }
+            .status-bar { bottom: 10px; padding: 8px 16px; width: 90%; justify-content: space-between; gap: 10px;}
+        }
+
+        /* Image Containers & Crop (Kept intact from original but modernized visually) */
+        .draggable-image-container { position: absolute; cursor: move; border: 2px solid transparent; transition: border-color 0.2s; border-radius: 8px; }
+        .draggable-image-container:hover, .draggable-image-container.selected { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.2); }
+        .image-controls { position: absolute; top: -45px; left: 50%; transform: translateX(-50%); display: none; gap: 6px; background: rgba(15,23,42,0.9); padding: 6px; border-radius: 10px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .draggable-image-container.selected .image-controls { display: flex; }
+        .image-controls button { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: none; cursor: pointer; transition: 0.2s; }
+        .image-controls button:hover { background: var(--primary); transform: scale(1.1); }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="theme-default">
+
+    <!-- Animated Background -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Hidden Inputs -->
+    <input type="file" id="imageInput" accept="image/*" multiple class="hidden">
+    <input type="file" id="pdfInput" accept=".pdf" class="hidden">
+    <input type="file" id="bookImageInput" accept="image/*" multiple class="hidden">
+    <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" class="hidden">
+
+    <!-- Top Left: Hamburger -->
+    <div class="action-btn-container action-left">
+        <button class="modern-btn hamburger-btn" id="hamburgerBtn" title="Menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+        </button>
+    </div>
+
+    <!-- Top Right: Export -->
+    <div class="action-btn-container action-right">
+        <button id="exportBtn" class="modern-btn btn-gradient-primary">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden sm:inline">Export PDF</span>
+        </button>
+    </div>
+
+    <!-- Floating Pill Toolbar -->
+    <div class="toolbar glass" id="toolbar">
+        <button class="toolbar-btn text-pink-400" onclick="formatText('bold')" title="Bold">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>
+        </button>
+        <button class="toolbar-btn text-purple-400" onclick="formatText('italic')" title="Italic">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4h4m-2 0v16m-4 0h8"/></svg>
+        </button>
+        <button class="toolbar-btn text-cyan-400" onclick="formatText('underline')" title="Underline">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v7a5 5 0 0010 0V4M5 21h14"/></svg>
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <select id="toolbarFontSize" class="font-size-select" title="Font Size">
+            <option value="12">12px</option>
+            <option value="14">14px</option>
+            <option value="16" selected>16px</option>
+            <option value="18">18px</option>
+            <option value="20">20px</option>
+            <option value="24">24px</option>
+            <option value="28">28px</option>
+            <option value="32">32px</option>
+        </select>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="color-picker-container">
+            <button class="toolbar-btn text-amber-400" onmousedown="saveSelection()" onclick="toggleColorPicker()" id="colorPickerBtn" title="Text Color">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>
+            </button>
+            <div class="color-dropdown" id="colorDropdown">
+                <!-- Colors -->
+                <div class="color-btn" style="background:#000000" onclick="applyColor('#000000')"></div>
+                <div class="color-btn" style="background:#ef4444" onclick="applyColor('#ef4444')"></div>
+                <div class="color-btn" style="background:#f97316" onclick="applyColor('#f97316')"></div>
+                <div class="color-btn" style="background:#eab308" onclick="applyColor('#eab308')"></div>
+                <div class="color-btn" style="background:#22c55e" onclick="applyColor('#22c55e')"></div>
+                <div class="color-btn" style="background:#06b6d4" onclick="applyColor('#06b6d4')"></div>
+                <div class="color-btn" style="background:#3b82f6" onclick="applyColor('#3b82f6')"></div>
+                <div class="color-btn" style="background:#8b5cf6" onclick="applyColor('#8b5cf6')"></div>
+                <div class="color-btn" style="background:#d946ef" onclick="applyColor('#d946ef')"></div>
+                <div class="color-btn" style="background:#f43f5e" onclick="applyColor('#f43f5e')"></div>
+            </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="toolbar-btn text-emerald-400" onclick="alignText('justifyLeft')" title="Align Left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
+        </button>
+        <button class="toolbar-btn text-emerald-400" onclick="alignText('justifyCenter')" title="Align Center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M5 18h14"/></svg>
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="toolbar-btn text-rose-400" onclick="document.getElementById('imageInput').click()" title="Insert Image">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </button>
+
+        <button class="toolbar-btn text-red-500 hover:bg-red-500/20" onclick="clearEditor()" title="Clear Document">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+    </div>
+
+    <!-- Main Editor Content -->
+    <main class="pt-32 pb-24 px-4 main-container">
+        <div class="pages-wrapper" id="pagesWrapper">
+            <div class="a4-page" id="pageContainer" data-page="1">
+                <div id="editor" contenteditable="true" class="editor-area"></div>
+                <div class="page-number">Page <span class="page-num">1</span></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modern Status Bar -->
+    <div class="status-bar glass">
+        <div class="flex items-center gap-4">
+            <span id="wordCount" class="text-cyan-200">W: 0 | C: 0</span>
+            <span class="w-1 h-1 bg-white/30 rounded-full"></span>
+            <span id="pageInfo" class="text-emerald-200">Pg 1 / 1</span>
+        </div>
+        <div id="lastSaved" class="flex items-center gap-2 text-white/70">
+            <span class="w-2 h-2 rounded-full bg-green-400 pulse shadow-[0_0_10px_rgba(74,222,128,0.8)]"></span>
+            Auto-saved
+        </div>
+    </div>
+
+    <!-- Smart Side Menu -->
+    <div id="sideMenu" class="fixed top-0 left-0 h-full w-80 bg-slate-900/90 backdrop-blur-2xl z-[150] transform -translate-x-full transition-transform duration-500 shadow-2xl border-r border-white/10">
+        <div class="p-6 h-full flex flex-col">
+            
+            <!-- Logo Header -->
+            <div class="flex items-center gap-4 mb-8 pb-6 border-b border-white/10">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">NabiulWord</h1>
+                    <p class="text-xs text-slate-400">Pro Notepad Environment</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="space-y-2 mb-8 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-3 pl-2">Quick Actions</p>
+                
+                <button onclick="newDocument()" class="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-all text-left group">
+                    <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
+                    <span class="text-sm font-medium text-slate-200 group-hover:text-white">New Document</span>
+                </button>
+                
+                <button onclick="document.getElementById('pdfInput').click(); closeSideMenu();" class="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-all text-left group">
+                    <div class="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div>
+                    <span class="text-sm font-medium text-slate-200 group-hover:text-white">Import PDF</span>
+                </button>
+
+                <div class="h-px bg-white/10 my-4 mx-2"></div>
+
+                <p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-3 pl-2">Appearance</p>
+
+                <!-- Themes Grid -->
+                <div class="grid grid-cols-5 gap-2 px-2 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 cursor-pointer hover:scale-125 transition-transform shadow-lg border border-white/20" onclick="setTheme('default')" title="Default"></div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-cyan-500 cursor-pointer hover:scale-125 transition-transform shadow-lg border border-white/20" onclick="setTheme('ocean')" title="Ocean"></div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 cursor-pointer hover:scale-125 transition-transform shadow-lg border border-white/20" onclick="setTheme('forest')" title="Forest"></div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 cursor-pointer hover:scale-125 transition-transform shadow-lg border border-white/20" onclick="setTheme('sunset')" title="Sunset"></div>
+                    <div class="w-8 h-8 rounded-full bg-white cursor-pointer hover:scale-125 transition-transform shadow-lg border border-slate-300" onclick="setTheme('light')" title="Light"></div>
+                </div>
+
+                <!-- Settings -->
+                <div class="bg-white/5 rounded-xl p-4 mt-4 border border-white/5">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs text-slate-300">Base Font Size</span>
+                        <span class="text-xs font-bold text-indigo-400 bg-indigo-500/20 px-2 py-1 rounded" id="fontSizeValue">16px</span>
+                    </div>
+                    <input type="range" id="fontSizeSlider" min="12" max="24" value="16" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Profile Footer -->
+            <div class="mt-auto pt-6 border-t border-white/10">
+                <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-white/5 to-transparent rounded-xl border border-white/10">
+                    <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold shadow-lg">NH</div>
+                    <div>
+                        <p class="text-sm font-bold text-white">Nabiul Hasan</p>
+                        <p class="text-[10px] text-indigo-300">Developer & Designer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[140] hidden transition-opacity duration-300 opacity-0"></div>
+
+    <!-- Beautiful Toast Notification -->
+    <div id="toast" class="fixed top-10 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white px-6 py-3 rounded-full shadow-[0_10px_40px_rgba(99,102,241,0.5)] z-[200] opacity-0 transition-all duration-500 -translate-y-10 font-medium text-sm border border-white/20 backdrop-blur-md">
+        <span id="toastMessage">Action successful!</span>
+    </div>
+
+    <script>
+        // Core Elements
+        const editor = document.getElementById('editor');
+        const pagesWrapper = document.getElementById('pagesWrapper');
+        const pageContainer = document.getElementById('pageContainer');
+        const sideMenu = document.getElementById('sideMenu');
+        const overlay = document.getElementById('overlay');
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const toolbar = document.getElementById('toolbar');
+        const exportBtn = document.getElementById('exportBtn');
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const toolbarFontSize = document.getElementById('toolbarFontSize');
+        
+        let totalPages = 1;
+        const PAGE_CONTENT_HEIGHT_PX = (297 - 30) * 3.78; // Approx px height for A4 content area
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadSavedContent();
+            updateWordCount();
+            initToolbarDrag();
+            setTimeout(updatePages, 100);
+        });
+
+        // Editor Auto-save & Logic
+        let saveTimeout;
+        let pageUpdateTimeout;
+        editor.addEventListener('input', () => {
+            updateWordCount();
+            clearTimeout(pageUpdateTimeout);
+            pageUpdateTimeout = setTimeout(updatePages, 200);
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                localStorage.setItem('nw_modern_content', editor.innerHTML);
+                showToast('Document Auto-saved!');
+            }, 2000);
+        });
+
+        function updateWordCount() {
+            const text = editor.innerText || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            document.getElementById('wordCount').textContent = `W: ${words} | C: ${chars}`;
+        }
+
+        // Page Pagination Logic
+        function updatePages() {
+            const contentHeight = editor.scrollHeight;
+            const neededPages = Math.max(1, Math.ceil(contentHeight / PAGE_CONTENT_HEIGHT_PX));
+            
+            if (neededPages !== totalPages) {
+                totalPages = neededPages;
+                document.getElementById('pageInfo').textContent = `Pg 1 / ${totalPages}`;
+                
+                const pageNumSpan = document.querySelector('.page-num');
+                if(pageNumSpan) pageNumSpan.textContent = totalPages > 1 ? `1 - ${totalPages}` : `1`;
+                
+                updateVisualPageBreaks();
+            }
+        }
+
+        function updateVisualPageBreaks() {
+            document.querySelectorAll('.page-break-line').forEach(el => el.remove());
+            for (let i = 1; i < totalPages; i++) {
+                const breakLine = document.createElement('div');
+                breakLine.className = 'page-break-line';
+                breakLine.style.top = `${15 + (PAGE_CONTENT_HEIGHT_PX * i / 3.78)}mm`;
+                
+                const indicator = document.createElement('div');
+                indicator.className = 'page-break-indicator';
+                indicator.textContent = `Page Break ${i}`;
+                breakLine.appendChild(indicator);
+                
+                pageContainer.appendChild(breakLine);
+            }
+        }
+
+        function loadSavedContent() {
+            const saved = localStorage.getItem('nw_modern_content');
+            if (saved) editor.innerHTML = saved;
+        }
+
+        // Formatting
+        function formatText(cmd) {
+            document.execCommand(cmd, false, null);
+            editor.focus();
+        }
+
+        // Toolbar Font Size (Selected Text)
+        toolbarFontSize.addEventListener('change', (e) => {
+            document.execCommand('fontSize', false, '7');
+            const fontElements = editor.getElementsByTagName("font");
+            for (let i = 0; i < fontElements.length; i++) {
+                if (fontElements[i].size === "7") {
+                    fontElements[i].removeAttribute("size");
+                    fontElements[i].style.fontSize = e.target.value + "px";
+                }
+            }
+            e.target.value = '16'; // Reset dropdown
+            editor.focus();
+        });
+
+        function toggleColorPicker() {
+            document.getElementById('colorDropdown').classList.toggle('show');
+        }
+
+        function applyColor(color) {
+            document.execCommand('foreColor', false, color);
+            document.getElementById('colorDropdown').classList.remove('show');
+            editor.focus();
+        }
+
+        function alignText(alignment) {
+            document.execCommand(alignment, false, null);
+            editor.focus();
+        }
+
+        // Clear Document
+        function clearEditor() {
+            if (confirm('Erase everything and start fresh?')) {
+                editor.innerHTML = '';
+                document.querySelectorAll('.draggable-image-container, .imported-pdf-page').forEach(e => e.remove());
+                localStorage.removeItem('nw_modern_content');
+                totalPages = 1;
+                updatePages();
+                showToast('Document cleared!');
+            }
+        }
+
+        function newDocument() { clearEditor(); closeSideMenu(); }
+
+        // Sidebar Actions
+        hamburgerBtn.addEventListener('click', () => {
+            sideMenu.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        });
+
+        function closeSideMenu() {
+            sideMenu.classList.add('-translate-x-full');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+        overlay.addEventListener('click', closeSideMenu);
+
+        // Settings (Theme & Font)
+        function setTheme(theme) {
+            document.body.className = `theme-${theme}`;
+            localStorage.setItem('nw_modern_theme', theme);
+            showToast(`${theme.charAt(0).toUpperCase() + theme.slice(1)} theme activated!`);
+        }
+
+        fontSizeSlider.addEventListener('input', (e) => {
+            const size = e.target.value;
+            editor.style.fontSize = `${size}px`;
+            document.getElementById('fontSizeValue').textContent = `${size}px`;
+            localStorage.setItem('nw_modern_fontSize', size);
+            setTimeout(updatePages, 100);
+        });
+
+        function loadSettings() {
+            const theme = localStorage.getItem('nw_modern_theme') || 'default';
+            const fontSize = localStorage.getItem('nw_modern_fontSize') || 16;
+            setTheme(theme);
+            fontSizeSlider.value = fontSize;
+            editor.style.fontSize = `${fontSize}px`;
+            document.getElementById('fontSizeValue').textContent = `${fontSize}px`;
+        }
+
+        // Export PDF
+        exportBtn.addEventListener('click', async () => {
+            if (!editor.innerText.trim() && !document.querySelector('.draggable-image-container')) {
+                showToast('Nothing to export!'); return;
+            }
+            showToast('Generating high-quality PDF...');
+            
+            const opt = {
+                margin: 10,
+                filename: `NabiulWord_Document_${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const clone = editor.cloneNode(true);
+            clone.style.padding = '10mm';
+            clone.style.color = '#000';
+            clone.style.background = '#fff';
+
+            try {
+                await html2pdf().set(opt).from(clone).save();
+                showToast('PDF Exported Successfully!');
+            } catch (err) {
+                showToast('Error exporting PDF');
+            }
+        });
+
+        // Image Insert (Simplified Draggable logic mapping)
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = `<div contenteditable="false" class="inline-block relative m-2 border-2 border-transparent hover:border-indigo-400 rounded-lg overflow-hidden transition-all"><img src="${e.target.result}" style="max-width:300px; border-radius: 8px;" /><button onclick="this.parentElement.remove()" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button></div>&nbsp;`;
+                    document.execCommand('insertHTML', false, img);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Toast
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('opacity-0', '-translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-10');
+            }, 3000);
+        }
+
+        // Draggable Toolbar
+        function initToolbarDrag() {
+            let isDragging = false, startX, startY, startLeft, startTop;
+            toolbar.addEventListener('mousedown', (e) => {
+                if(e.target.closest('button') || e.target.closest('select')) return;
+                isDragging = true;
+                const rect = toolbar.getBoundingClientRect();
+                startLeft = rect.left; startTop = rect.top;
+                startX = e.clientX; startY = e.clientY;
+            });
+            document.addEventListener('mousemove', (e) => {
+                if(!isDragging) return;
+                toolbar.style.left = `${startLeft + (e.clientX - startX)}px`;
+                toolbar.style.top = `${startTop + (e.clientY - startY)}px`;
+                toolbar.style.transform = 'none';
+            });
+            document.addEventListener('mouseup', () => isDragging = false);
+        }
+        
+        // Hide popups on click outside
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.color-picker-container')) {
+                document.getElementById('colorDropdown').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
